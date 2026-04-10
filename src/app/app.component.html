@@ -1,0 +1,233 @@
+<!-- FONT AWESOME + GOOGLE FONTS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- TOAST -->
+<div class="toast-box" [class.visible]="toast.visible" [class.error]="toast.isError">
+  <i class="fas" [ngClass]="toast.isError ? 'fa-circle-xmark' : 'fa-circle-check'"></i>
+  {{ toast.message }}
+</div>
+
+<!-- LOGIN -->
+<div *ngIf="!isLoggedIn" class="login-page">
+  <div class="login-bg-orb orb1"></div>
+  <div class="login-bg-orb orb2"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="fas fa-check-double"></i>
+    </div>
+    <h2>Welcome Back</h2>
+    <p class="login-sub">Sign in to manage your tasks</p>
+
+    <div class="field-group">
+      <label><i class="fas fa-user"></i> Username</label>
+      <input class="form-control"
+             placeholder="Enter username"
+             [(ngModel)]="username"
+             (keyup.enter)="login()">
+    </div>
+
+    <div class="field-group">
+      <label><i class="fas fa-lock"></i> Password</label>
+      <input type="password"
+             class="form-control"
+             placeholder="Enter password"
+             [(ngModel)]="password"
+             (keyup.enter)="login()">
+    </div>
+
+    <button class="btn-login" (click)="login()">
+      <i class="fas fa-sign-in-alt"></i> Sign In
+    </button>
+  </div>
+</div>
+
+<!-- APP -->
+<div *ngIf="isLoggedIn" class="app-wrapper" [class.dark]="isDarkMode">
+
+  <div class="dashboard">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon">
+          <i class="fas fa-check-double"></i>
+        </div>
+        <div>
+          <h1>My Tasks</h1>
+          <span class="header-date">{{ today | date:'EEEE, MMMM d' }}</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn" (click)="toggleDarkMode()" [title]="isDarkMode ? 'Light Mode' : 'Dark Mode'">
+          <i class="fas" [ngClass]="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
+        </button>
+        <button class="icon-btn logout-btn" (click)="logout()" title="Logout">
+          <i class="fas fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="progress-section">
+      <div class="progress-info">
+        <span>Overall Progress</span>
+        <span class="progress-pct">{{ progressPercent }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="progressPercent"></div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num">{{ todos.length }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon done">
+          <i class="fas fa-circle-check"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num">{{ todos.filter(t => t.completed).length }}</span>
+          <span class="stat-label">Completed</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon pending">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num">{{ todos.filter(t => !t.completed).length }}</span>
+          <span class="stat-label">Pending</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD TASK -->
+    <div class="add-section">
+      <div class="input-box">
+        <i class="fas fa-plus input-icon"></i>
+        <input placeholder="Add a new task..."
+               [(ngModel)]="newTask"
+               (keyup.enter)="addTask()">
+        <button class="btn-add" (click)="addTask()">
+          Add Task
+        </button>
+      </div>
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="controls">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input placeholder="Search tasks..."
+               [(ngModel)]="searchText">
+      </div>
+
+      <div class="filters">
+        <button [class.active]="filter === 'all'" (click)="filter='all'">
+          All <span class="badge">{{ todos.length }}</span>
+        </button>
+        <button [class.active]="filter === 'pending'" (click)="filter='pending'">
+          Pending <span class="badge">{{ todos.filter(t => !t.completed).length }}</span>
+        </button>
+        <button [class.active]="filter === 'done'" (click)="filter='done'">
+          Done <span class="badge">{{ todos.filter(t => t.completed).length }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TASKS LIST -->
+    <div class="tasks-container">
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="filteredTodos.length === 0" class="empty-state">
+        <i class="fas fa-clipboard-list"></i>
+        <p>No tasks found</p>
+        <span>{{ filter === 'all' ? 'Add your first task above!' : 'Nothing here yet.' }}</span>
+      </div>
+
+      <div cdkDropList (cdkDropListDropped)="drop($event)">
+
+        <div *ngFor="let todo of filteredTodos"
+             cdkDrag
+             class="task-item"
+             [class.completed]="todo.completed">
+
+          <!-- DRAG HANDLE -->
+          <div class="drag-handle" cdkDragHandle>
+            <i class="fas fa-grip-vertical"></i>
+          </div>
+
+          <!-- CHECKBOX -->
+          <label class="checkbox-wrap">
+            <input type="checkbox"
+                   (change)="toggleTask(todo.id)"
+                   [checked]="todo.completed">
+            <span class="checkmark"></span>
+          </label>
+
+          <!-- TASK CONTENT -->
+          <div class="task-content">
+            <ng-container *ngIf="editModeId !== todo.id; else editMode">
+              <span class="task-title" [class.striked]="todo.completed">
+                {{ todo.title }}
+              </span>
+            </ng-container>
+
+            <ng-template #editMode>
+              <input class="edit-input"
+                     [(ngModel)]="editedTask"
+                     (keyup.enter)="saveEdit(todo.id)"
+                     (keyup.escape)="editModeId = null"
+                     autofocus>
+            </ng-template>
+          </div>
+
+          <!-- ACTIONS -->
+          <div class="task-actions">
+            <ng-container *ngIf="editModeId !== todo.id; else saveCancel">
+              <button class="action-btn edit" (click)="startEdit(todo)" title="Edit">
+                <i class="fas fa-pen"></i>
+              </button>
+              <button class="action-btn delete" (click)="deleteTask(todo.id)" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </ng-container>
+
+            <ng-template #saveCancel>
+              <button class="action-btn save" (click)="saveEdit(todo.id)" title="Save">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="action-btn cancel" (click)="editModeId = null" title="Cancel">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </ng-template>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer" *ngIf="todos.length > 0">
+      <span>{{ todos.filter(t => !t.completed).length }} task(s) remaining</span>
+      <button class="clear-btn" (click)="clearCompleted()" *ngIf="todos.filter(t => t.completed).length > 0">
+        <i class="fas fa-broom"></i> Clear completed
+      </button>
+    </div>
+
+  </div>
+</div>
